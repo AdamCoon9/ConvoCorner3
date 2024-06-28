@@ -1,0 +1,67 @@
+/* Register link */
+.register-link {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    color: #337ab7;
+    text-decoration: none;
+  }
+  
+  /* Hover effect for button and link */
+  .login-button:hover,
+  .register-link:hover {
+    opacity: 0.8;
+  }
+  /* Registration container */
+.registration-container {
+    width: 300px;
+    margin: 100px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+  }
+  
+  /* Input fields */
+  .input-field {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+  }
+  
+  /* Validation message */
+  .validation-message {
+    color: red;
+    font-size: 0.8em;
+    margin-bottom: 5px;
+  }
+  
+  /* Register button */
+  .register-button {
+    width: 100%;
+    padding: 10px;
+    margin: 20px 0;
+    border: none;
+    border-radius: 3px;
+    background-color: #5cb85c;
+    color: white;
+    cursor: pointer;
+  }
+  
+  /* Terms checkbox */
+  .terms-checkbox {
+    margin: 10px 0;
+  }
+  
+  /* Terms label */
+  .terms-label {
+    font-size: 0.8em;
+  }
+  
+  /* Hover effect for button */
+  .register-button:hover {
+    opacity: 0.8;
+  }
+  

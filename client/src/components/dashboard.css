@@ -1,0 +1,56 @@
+/* Dashboard container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    justify-content: space-around;
+    padding: 20px;
+  }
+  
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+  }
+  
+  /* Sidebar for categories */
+  .sidebar {
+    width: 200px;
+    background-color: #f4f4f4;
+    padding: 10px;
+  }
+  
+  /* Category item */
+  .category-item {
+    padding: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+  }
+  
+  /* Main content area */
+  .main-content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #eaeaea;
+  }
+  
+  /* Style for active category */
+  .active-category {
+    background-color: #ddd;
+  }
+  .categories-container {
+    width: 200px;
+  }
+  
+  /* Questions container */
+  .questions-container {
+    width: 500px;
+  }
+  
+  /* Category item */
+  .category-item {
+    cursor: pointer;
+  }
