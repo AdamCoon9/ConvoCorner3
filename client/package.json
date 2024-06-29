@@ -12,9 +12,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "concurrently next dev node --max-http-header-size=64555 api-server"
+    "dev": "node --max-http-header-size=64555"
   },
-  "proxy": "http://localhost:3000",
+  "proxy": "http://localhost:27325",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -45,4 +45,5 @@
     "styled-components": "^6.1.11",
     "web-vitals": "^4.2.0"
   }
+  
 }

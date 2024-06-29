@@ -2,8 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import './login.css';
 import config from '../config.js'; 
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -43,6 +42,7 @@ const Login = () => {
         <input type="submit" value="Submit" />
       </form>
       {errorMessage && <p>{errorMessage}</p>}
+      <p>Don't have an account? <Link to="/register">Register</Link></p>
     </div>
   ); 
 };

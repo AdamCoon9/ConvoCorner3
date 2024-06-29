@@ -4,6 +4,7 @@ const mysql = require('mysql2');
 const fs = require("fs");
 const config = require('./config');
 
+
 // Create SQL connection
 const sqlConn = mysql.createConnection({
   host: "mysql-30fd222d-convocorner.d.aivencloud.com",
@@ -28,34 +29,39 @@ sqlConn.connect(function(err) {
   const app = express();
   app.use(cors());
   app.use(express.json());
+// Define your routes
 app.get('/', (req, res) => {
   const {param1} = req.query;
-
   res.send('Hello World!<br>Param1 = ' + param1);
 });
-
+// User data
 const users = [
   {id: 1, username: 'chuckp', password: 'p@$$w0rd'},
   {id: 2, username: 'adamc', password: 'gopackgo'},
 ];
-
-app.get('/users', (req, res) => {
+// User routes
+app.get('/api/user', (req, res) => {
   res.send(users);
 });
 
-app.get('/users/:id', (req, res) => {
+app.get('/api/user/:id', (req, res) => {
+  getUserById(req.params.id, (err, person) => {
+    if(err) {
+      console.error(err);
+      res.status(500).send('Server Error');
+      return;
+    }
 
-  const person = getUserById(req.params.id);
+    if(!person) {
+      res.sendStatus(404);
+      return;
+    }
 
-  if(!person) {
-    res.sendStatus(404);
-    return;
-  }
-
-  res.send(person);
+    res.send(person);
+  });
 });
 
-app.post('/users', (req, res) => {
+app.post('/api/user', (req, res) => {
   if(!req.body){
     res.status(400).json({ error: 'Body not specified' });
     return;
@@ -145,7 +151,6 @@ app.post('/register', (req, res) => {
 
 
 const getUserByUsername = function(username, cb){
-
   sqlConn.query(
     `SELECT * FROM users WHERE username = '${username}'` ,
     function (err, results, fields) {
@@ -186,19 +191,21 @@ const addUser = function(user, cb){
   );
 }
 // Categories
-app.get('/api/categories', async (req, res) => {
-  try {
-    const query = 'SELECT * FROM categories';
-    const [rows] = await sqlConn.promise().query(query);
 
-    res.json(rows);
+app.get('/api/category', async (req, res) => {
+  try {
+    const sql = "SELECT * FROM category";
+    const [rows] = await sqlConn.promise().query(sql);
+
+    res.status(200).json(rows);
   } catch (error) {
-    console.error('Failed to fetch categories:', error);
-    res.status(500).json({ error: 'Failed to fetch categories' });
+    console.error('Failed to fetch category:', error);
+    res.status(500).json({ error: 'Failed to fetch category', message: error.message });
   }
 });
+
   
-app.post('/api/categories', async (req, res) => {
+app.post('/api/category', async (req, res) => {
   const { category } = req.body;
 
   if (!category) {
@@ -214,7 +221,7 @@ app.post('/api/categories', async (req, res) => {
   }
 
   try {
-    const query = 'INSERT INTO categories (name) VALUES (?)';
+    const query = 'INSERT INTO category (name) VALUES (?)';
     const result = await sqlConn.promise().query(query, [category]);
 
     res.status(201).json({ id: result.insertId, name: category });
@@ -224,7 +231,7 @@ app.post('/api/categories', async (req, res) => {
   }
 }); 
   
-app.put('/api/categories/:id', async (req, res) => {
+app.put('/api/category/:id', async (req, res) => {
   const { id } = req.params;
   const { category } = req.body;
   if (!category) {
@@ -240,7 +247,7 @@ app.put('/api/categories/:id', async (req, res) => {
   }
 
   try {
-    const query = 'UPDATE categories SET name = ? WHERE id = ?';
+    const query = 'UPDATE category SET name = ? WHERE id = ?';
     await sqlConn.promise().query(query, [category, id]);
 
     res.json({ id, name: category });
@@ -250,11 +257,11 @@ app.put('/api/categories/:id', async (req, res) => {
   }
 }); 
   
-  app.delete('/api/categories/:id', async (req, res) => {
+  app.delete('/api/category/:id', async (req, res) => {
     const { id } = req.params;
   
     try {
-      const query = 'DELETE FROM categories WHERE id = ?';
+      const query = 'DELETE FROM category WHERE id = ?';
       await sqlConn.promise().query(query, [id]);
   
       res.json({ message: `Deleted category with id: ${id}` });
@@ -281,7 +288,7 @@ app.put('/api/categories/:id', async (req, res) => {
     }
   
     try {
-      const query = 'SELECT * FROM questions WHERE category = ?';
+      const query = 'SELECT * FROM questions WHERE category_id = ?';
       const [rows] = await sqlConn.promise().query(query, [category]);
   
       res.json(rows);
@@ -292,7 +299,7 @@ app.put('/api/categories/:id', async (req, res) => {
   });  
   
   app.post('/api/questions', async (req, res) => {
-    const { question, category } = req.body;
+    const { question, category, askedBy, askedOn } = req.body;
   
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
@@ -319,16 +326,15 @@ app.put('/api/categories/:id', async (req, res) => {
     }
   
     try {
-      const query = 'INSERT INTO questions (question, category) VALUES (?, ?)';
-      const result = await sqlConn.promise().query(query, [question, category]);
+      const query = 'INSERT INTO questions (question, category, question_text, asked_by, asked_on) VALUES (?, ?, ?, ?, ?)';
+      const result = await sqlConn.promise().query(query, [question, category, question, askedBy, askedOn]);
   
       res.status(201).json({ id: result.insertId, question, category });
     } catch (error) {
       console.error('Failed to insert question:', error);
       res.status(500).json({ error: 'Failed to insert question' });
     }
-  });
-  
+  });  
   
   app.put('/questions/:id', (req, res) => {
     const { id } = req.params;
@@ -374,19 +380,19 @@ app.put('/api/categories/:id', async (req, res) => {
     });
   });
 
-app.post('/answers', (req, res) => {
-  const { questionId, answer } = req.body;
+  app.post('/api/answers', async (req, res) => {
+    const { answer, questionId } = req.body;
 
-  const sql = 'INSERT INTO answers (questionId, answer) VALUES (?, ?)';
-  connection.query(sql, [questionId, answer], (error, results) => {
-    if (error) {
-      console.log(error);
-      res.status(500).send('An error occurred while creating the answer.');
-    } else {
-      res.status(201).send(`Answer was created successfully.`);
+    try {
+      const query = 'INSERT INTO answers (text, question_id) VALUES (?, ?)';
+      const result = await sqlConn.promise().query(query, [answer, questionId]);
+  
+      res.status(201).json({ id: result.insertId, text: answer, questionId });
+    } catch (error) {
+      console.error('Failed to insert answer:', error);
+      res.status(500).json({ error: 'Failed to insert answer' });
     }
   });
-});
 
 app.put('/answers/:id', (req, res) => {
   const { id } = req.params;
@@ -429,9 +435,9 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message });
 });
-  
-  app.listen(4000, () => {
-    console.log('Listening on port 4000!');
+
+  app.listen(27325, () => {
+    console.log('Listening on port 27325!');
   });
 
   

@@ -19,13 +19,13 @@ const NewQuestion = () => {
       try {
         const response = await axios.post('/api/questions', { question: questionText, category });
         if (response.data.id) {
-          // Redirect to Category2 questions screen
-          // You might want to clear the form here
+          console.log('Question submitted:', questionText); // Log submitted question
+          // Clear the form here
           setQuestionText('');
           setCategory('');
         }
       } catch (error) {
-        // Consider setting up a logger for your application
+        console.error('Failed to submit question:', error); // Log error
       }
     }
   };

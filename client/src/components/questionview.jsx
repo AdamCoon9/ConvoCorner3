@@ -3,34 +3,44 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import '../index.css';
 
-
 const QuestionView = ({ questionId }) => {
   const [question, setQuestion] = useState({});
   const [answers, setAnswers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [answerText, setAnswerText] = useState('');
+
   useEffect(() => {
     const fetchQuestionAndAnswers = async () => {
-      const questionResponse = await axios.get(`/api/questions/${questionId}`);
-      setQuestion(questionResponse.data);
-      const answersResponse = await axios.get(`/api/questions/${questionId}/answers`);
-      setAnswers(answersResponse.data);
+      try {
+        const questionResponse = await axios.get(`/api/questions/${questionId}`);
+        console.log('Fetched question:', questionResponse.data); // Log fetched question
+        setQuestion(questionResponse.data);
+
+        const answersResponse = await axios.get(`/api/questions/${questionId}/answers`);
+        console.log('Fetched answers:', answersResponse.data); // Log fetched answers
+        setAnswers(answersResponse.data);
+      } catch (error) {
+        console.error('Failed to fetch question and answers:', error); // Log error
+      }
     };
     fetchQuestionAndAnswers();
   }, [questionId]);
+
   const handleAnswerSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`/api/questions/${questionId}/answers`, { text: answerText });
-      if (response.data.success) {
+      const response = await axios.post(`/api/answers`, { text: answerText, questionId });
+      if (response.data.id) {
+        console.log('Submitted answer:', answerText); // Log submitted answer
         const answersResponse = await axios.get(`/api/questions/${questionId}/answers`);
         setAnswers(answersResponse.data);
         setShowModal(false);
       }
     } catch (error) {
-      // Consider setting up a logger for your application
+      console.error('Failed to submit answer:', error); // Log error
     }
   };
+  
   return (
     <div>
       <h2>{question.text}</h2>
