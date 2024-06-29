@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import './login.css';
-import config from '../config.js'; // import
+import config from '../config.js'; 
 import { useNavigate } from 'react-router-dom';
 
 
@@ -9,14 +9,14 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const navigate = useNavigate(); // import and useHistory hook
+  const navigate = useNavigate(); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post(config.baseurl + '/login', { username, password });
       
-      if (response.data.username == username) {
+      if (response.data.username === username) {
         console.log('Login response:', response.data);
         navigate('/dashboard');
       } else {

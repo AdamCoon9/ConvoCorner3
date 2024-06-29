@@ -161,9 +161,13 @@ const getUserByUsername = function(username, cb){
   );
 }
 
-const getUserById = function(user_id){
-  // TODO: implement database
-  return users.find((u) => u.id == user_id);
+const getUserById = function(user_id, callback){
+  connection.query('SELECT * FROM users WHERE id = ?', [user_id], function(error, results, fields) {
+    if (error) {
+      return callback(error);
+    }
+    callback(null, results[0]);
+  });
 }
 
 const addUser = function(user, cb){
@@ -182,55 +186,236 @@ const addUser = function(user, cb){
   );
 }
 // Categories
-app.get('/categories', (req, res) => {
-    // Code to fetch and return all categories from the database
-  });
+app.get('/api/categories', async (req, res) => {
+  try {
+    const query = 'SELECT * FROM categories';
+    const [rows] = await sqlConn.promise().query(query);
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
   
-  app.post('/categories', (req, res) => {
-    // Code to create a new category in the database
-  });
+app.post('/api/categories', async (req, res) => {
+  const { category } = req.body;
+
+  if (!category) {
+    return res.status(400).json({ error: 'Category is required' });
+  }
+
+  if (typeof category !== 'string') {
+    return res.status(400).json({ error: 'Category must be a string' });
+  }
+
+  if (category.length > 255) {
+    return res.status(400).json({ error: 'Category is too long' });
+  }
+
+  try {
+    const query = 'INSERT INTO categories (name) VALUES (?)';
+    const result = await sqlConn.promise().query(query, [category]);
+
+    res.status(201).json({ id: result.insertId, name: category });
+  } catch (error) {
+    console.error('Failed to insert category:', error);
+    res.status(500).json({ error: 'Failed to insert category' });
+  }
+}); 
   
-  app.put('/categories/:id', (req, res) => {
-    // Code to update an existing category in the database
-  });
+app.put('/api/categories/:id', async (req, res) => {
+  const { id } = req.params;
+  const { category } = req.body;
+  if (!category) {
+    return res.status(400).json({ error: 'Category is required' });
+  }
+
+  if (typeof category !== 'string') {
+    return res.status(400).json({ error: 'Category must be a string' });
+  }
+
+  if (category.length > 255) {
+    return res.status(400).json({ error: 'Category is too long' });
+  }
+
+  try {
+    const query = 'UPDATE categories SET name = ? WHERE id = ?';
+    await sqlConn.promise().query(query, [category, id]);
+
+    res.json({ id, name: category });
+  } catch (error) {
+    console.error('Failed to update category:', error);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+}); 
   
-  app.delete('/categories/:id', (req, res) => {
-    // Code to delete a category from the database
-  });
+  app.delete('/api/categories/:id', async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const query = 'DELETE FROM categories WHERE id = ?';
+      await sqlConn.promise().query(query, [id]);
+  
+      res.json({ message: `Deleted category with id: ${id}` });
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+      res.status(500).json({ error: 'Failed to delete category' });
+    }
+  });  
   
   // Questions
-  app.get('/questions', (req, res) => {
-    // Code to fetch and return all questions for a specific category from the database
+  app.get('/api/questions', async (req, res) => {
+    const { category } = req.query;
+  
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+  
+    if (typeof category !== 'string') {
+      return res.status(400).json({ error: 'Category must be a string' });
+    }
+  
+    if (category.length > 255) {
+      return res.status(400).json({ error: 'Category is too long' });
+    }
+  
+    try {
+      const query = 'SELECT * FROM questions WHERE category = ?';
+      const [rows] = await sqlConn.promise().query(query, [category]);
+  
+      res.json(rows);
+    } catch (error) {
+      console.error('Failed to fetch questions:', error);
+      res.status(500).json({ error: 'Failed to fetch questions' });
+    }
+  });  
+  
+  app.post('/api/questions', async (req, res) => {
+    const { question, category } = req.body;
+  
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+  
+    if (typeof question !== 'string') {
+      return res.status(400).json({ error: 'Question must be a string' });
+    }
+  
+    if (question.length > 65535) { 
+      return res.status(400).json({ error: 'Question is too long' });
+    }
+  
+    if (!category) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+  
+    if (typeof category !== 'string') {
+      return res.status(400).json({ error: 'Category must be a string' });
+    }
+  
+    if (category.length > 255) {
+      return res.status(400).json({ error: 'Category is too long' });
+    }
+  
+    try {
+      const query = 'INSERT INTO questions (question, category) VALUES (?, ?)';
+      const result = await sqlConn.promise().query(query, [question, category]);
+  
+      res.status(201).json({ id: result.insertId, question, category });
+    } catch (error) {
+      console.error('Failed to insert question:', error);
+      res.status(500).json({ error: 'Failed to insert question' });
+    }
   });
   
-  app.post('/questions', (req, res) => {
-    // Code to create a new question in the database
-  });
   
   app.put('/questions/:id', (req, res) => {
-    // Code to update an existing question in the database
+    const { id } = req.params;
+    const { question, answer } = req.body;
+  
+    const sql = 'UPDATE questions SET question = ?, answer = ? WHERE id = ?';
+    connection.query(sql, [question, answer, id], (error, results) => {
+      if (error) {
+        console.log(error);
+        res.status(500).send('An error occurred while updating the question.');
+      } else {
+        res.status(200).send(`Question with ID ${id} was updated successfully.`);
+      }
+    });
   });
   
   app.delete('/questions/:id', (req, res) => {
-    // Code to delete a question from the database
+    const { id } = req.params;
+  
+    const sql = 'DELETE FROM questions WHERE id = ?';
+    connection.query(sql, [id], (error, results) => {
+      if (error) {
+        console.log(error);
+        res.status(500).send('An error occurred while deleting the question.');
+      } else {
+        res.status(200).send(`Question with ID ${id} was deleted successfully.`);
+      }
+    });
   });
   
   // Answers
-  app.get('/answers', (req, res) => {
-    // Code to fetch and return all answers for a specific question from the database
-  });
+  app.get('/answers/:questionId', (req, res) => {
+    const { questionId } = req.params;
   
-  app.post('/answers', (req, res) => {
-    // Code to create a new answer in the database
+    const sql = 'SELECT * FROM answers WHERE questionId = ?';
+    connection.query(sql, [questionId], (error, results) => {
+      if (error) {
+        console.log(error);
+        res.status(500).send('An error occurred while fetching the answers.');
+      } else {
+        res.status(200).json(results);
+      }
+    });
   });
+
+app.post('/answers', (req, res) => {
+  const { questionId, answer } = req.body;
+
+  const sql = 'INSERT INTO answers (questionId, answer) VALUES (?, ?)';
+  connection.query(sql, [questionId, answer], (error, results) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('An error occurred while creating the answer.');
+    } else {
+      res.status(201).send(`Answer was created successfully.`);
+    }
+  });
+});
+
+app.put('/answers/:id', (req, res) => {
+  const { id } = req.params;
+  const { answer } = req.body;
+
+  const sql = 'UPDATE answers SET answer = ? WHERE id = ?';
+  connection.query(sql, [answer, id], (error, results) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('An error occurred while updating the answer.');
+    } else {
+      res.status(200).send(`Answer with ID ${id} was updated successfully.`);
+    }
+  });
+});
   
-  app.put('/answers/:id', (req, res) => {
-    // Code to update an existing answer in the database
+app.delete('/answers/:id', (req, res) => {
+  const { id } = req.params;
+
+  const sql = 'DELETE FROM answers WHERE id = ?';
+  connection.query(sql, [id], (error, results) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('An error occurred while deleting the answer.');
+    } else {
+      res.status(200).send(`Answer with ID ${id} was deleted successfully.`);
+    }
   });
-  
-  app.delete('/answers/:id', (req, res) => {
-    // Code to delete an answer from the database
-  });
+});
   
   // Error handling
   app.use((err, req, res, next) => {

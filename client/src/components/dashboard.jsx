@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import './dashboard.css';
-
 
 const Dashboard = () => {
   const [username, setUsername] = useState('');
@@ -22,8 +20,13 @@ const Dashboard = () => {
     fetchUser();
 
     const fetchCategories = async () => {
-      const response = await axios.get('/api/categories');
-      setCategories(response.data);
+      try {
+        const response = await axios.get('/api/categories');
+        console.log('Categories:', response.data); // Log categories to console
+        setCategories(response.data);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
     };
     fetchCategories();
   }, []);
