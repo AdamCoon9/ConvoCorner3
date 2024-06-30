@@ -12,11 +12,11 @@ const QuestionView = ({ questionId }) => {
   useEffect(() => {
     const fetchQuestionAndAnswers = async () => {
       try {
-        const questionResponse = await axios.get(`/api/questions/${questionId}`);
+        const questionResponse = await axios.get(`/api//${questionId}`);
         console.log('Fetched question:', questionResponse.data); // Log fetched question
         setQuestion(questionResponse.data);
 
-        const answersResponse = await axios.get(`/api/questions/${questionId}/answers`);
+        const answersResponse = await axios.get(`/api/question/${questionId}/answers`);
         console.log('Fetched answers:', answersResponse.data); // Log fetched answers
         setAnswers(answersResponse.data);
       } catch (error) {
@@ -32,7 +32,7 @@ const QuestionView = ({ questionId }) => {
       const response = await axios.post(`/api/answers`, { text: answerText, questionId });
       if (response.data.id) {
         console.log('Submitted answer:', answerText); // Log submitted answer
-        const answersResponse = await axios.get(`/api/questions/${questionId}/answers`);
+        const answersResponse = await axios.get(`/api/question/${questionId}/answers`);
         setAnswers(answersResponse.data);
         setShowModal(false);
       }
@@ -40,7 +40,7 @@ const QuestionView = ({ questionId }) => {
       console.error('Failed to submit answer:', error); // Log error
     }
   };
-  
+
   return (
     <div>
       <h2>{question.text}</h2>

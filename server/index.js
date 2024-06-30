@@ -35,13 +35,13 @@ app.get('/', (req, res) => {
   res.send('Hello World!<br>Param1 = ' + param1);
 });
 // User data
-const users = [
+const user = [
   {id: 1, username: 'chuckp', password: 'p@$$w0rd'},
   {id: 2, username: 'adamc', password: 'gopackgo'},
 ];
 // User routes
 app.get('/api/user', (req, res) => {
-  res.send(users);
+  res.send(user);
 });
 
 app.get('/api/user/:id', (req, res) => {
@@ -82,46 +82,54 @@ app.post('/api/user', (req, res) => {
     id: nexPersonId++
   };
 
-  users.push(newPerson);
+  user.push(newPerson);
 
   res.send(newPerson);
 });
 
 app.post('/login', (req, res) => {
 
+  console.log('Login request received');
+
   if(!req.body.username){
+    console.log('Username not provided');
     res.status(400).json({ error: 'Username not provided' });
     return;
   }
 
   if(!req.body.password){
+    console.log('Password not provided');
     res.status(400).json({ error: 'Password not provided' });
     return;
   }
 
-
-
   const handleUser = function(userResponse, err) {
     if(err){
+      console.error('Error in handleUser:', err);
       res.status(500).json({ error: err });
       return;
     }
     if(!userResponse){
+      console.log('User not found');
       res.status(400).json({ error: 'User not found' });
       return;
     }
   
     if(userResponse.password != req.body.password){
+      console.log('Password incorrect');
       res.status(400).json({ error: 'Password incorrect' });
       return;
     }
   
+    console.log('Login successful for user:', userResponse.username);
     res.send(userResponse);
   }
 
+  console.log('Calling getUserByUsername with username:', req.body.username);
   getUserByUsername(req.body.username, handleUser);
 
 });
+
 
 
 app.post('/register', (req, res) => {
@@ -152,7 +160,7 @@ app.post('/register', (req, res) => {
 
 const getUserByUsername = function(username, cb){
   sqlConn.query(
-    `SELECT * FROM users WHERE username = '${username}'` ,
+    `SELECT * FROM user WHERE username = '${username}'` ,
     function (err, results, fields) {
       if(err){
         cb(null, err);
@@ -167,7 +175,7 @@ const getUserByUsername = function(username, cb){
 }
 
 const getUserById = function(user_id, callback){
-  connection.query('SELECT * FROM users WHERE id = ?', [user_id], function(error, results, fields) {
+  connection.query('SELECT * FROM user WHERE id = ?', [user_id], function(error, results, fields) {
     if (error) {
       return callback(error);
     }
@@ -177,7 +185,7 @@ const getUserById = function(user_id, callback){
 
 const addUser = function(user, cb){
   sqlConn.query(
-    `INSERT INTO users(username, password) SELECT '${user.username}', '${user.password}'` ,
+    `INSERT INTO user(username, password) SELECT '${user.username}', '${user.password}'` ,
     function (err, results, fields) {
       if(err){
         cb(null, err);
@@ -272,7 +280,7 @@ app.put('/api/category/:id', async (req, res) => {
   });  
   
   // Questions
-  app.get('/api/questions', async (req, res) => {
+  app.get('/api/question', async (req, res) => {
     const { category } = req.query;
   
     if (!category) {
@@ -288,18 +296,20 @@ app.put('/api/category/:id', async (req, res) => {
     }
   
     try {
-      const query = 'SELECT * FROM questions WHERE category_id = ?';
+      const query = 'SELECT * FROM question WHERE category = ?';
       const [rows] = await sqlConn.promise().query(query, [category]);
   
       res.json(rows);
     } catch (error) {
-      console.error('Failed to fetch questions:', error);
-      res.status(500).json({ error: 'Failed to fetch questions' });
+      console.error('Failed to fetch question:', error);
+      res.status(500).json({ error: 'Failed to fetch question' });
     }
   });  
   
-  app.post('/api/questions', async (req, res) => {
+  app.post('/api/question', async (req, res) => {
     const { question, category, askedBy, askedOn } = req.body;
+  
+    console.log('Received a request to post a new question:', question, 'Category:', category); // Log the question and category
   
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
@@ -326,21 +336,22 @@ app.put('/api/category/:id', async (req, res) => {
     }
   
     try {
-      const query = 'INSERT INTO questions (question, category, question_text, asked_by, asked_on) VALUES (?, ?, ?, ?, ?)';
-      const result = await sqlConn.promise().query(query, [question, category, question, askedBy, askedOn]);
+      const query = 'INSERT INTO question (question, category, asked_by, asked_on) VALUES (?, ?, ?, ?)';
+      const result = await sqlConn.promise().query(query, [question, category, askedBy, askedOn]);
   
+      console.log('Question inserted with ID:', result.insertId); // Log the inserted question ID
       res.status(201).json({ id: result.insertId, question, category });
     } catch (error) {
       console.error('Failed to insert question:', error);
       res.status(500).json({ error: 'Failed to insert question' });
     }
-  });  
+  });    
   
-  app.put('/questions/:id', (req, res) => {
+  app.put('/api/question/:id', (req, res) => {
     const { id } = req.params;
     const { question, answer } = req.body;
   
-    const sql = 'UPDATE questions SET question = ?, answer = ? WHERE id = ?';
+    const sql = 'UPDATE question SET question = ?, answer = ? WHERE id = ?';
     connection.query(sql, [question, answer, id], (error, results) => {
       if (error) {
         console.log(error);
@@ -351,10 +362,10 @@ app.put('/api/category/:id', async (req, res) => {
     });
   });
   
-  app.delete('/questions/:id', (req, res) => {
+  app.delete('/api/question/:id', (req, res) => {
     const { id } = req.params;
   
-    const sql = 'DELETE FROM questions WHERE id = ?';
+    const sql = 'DELETE FROM question WHERE id = ?';
     connection.query(sql, [id], (error, results) => {
       if (error) {
         console.log(error);

@@ -5,11 +5,11 @@ import './dashboard.css';
 const Dashboard = () => {
   const [username, setUsername] = useState('');
   const [category, setCategory] = useState([]);
-  const [questions, setQuestions] = useState([]);
+  const [question, setQuestion] = useState([]);
   const [selectCategory, setSelectCategory] = useState(null);
   const [isLoading, setIsLoading] = useState(true); 
   const [error, setError] = useState(null);
-
+  const [submitQuestion, setSubmitQuestion] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
   const [newAnswer, setNewAnswer] = useState('');
 
@@ -20,36 +20,41 @@ const Dashboard = () => {
   const handleAnswerChange = (event) => {
     setNewAnswer(event.target.value);
   };
+ 
 
-  const handleAskQuestion = async () => {
-    try {
-      const response = await axios.post('/api/questions', {
-        question: newQuestion,
-        category: selectCategory
-      });
-      // The server should return the newly created question,
-      // which you can then add to your local state:
-      setQuestions(oldQuestions => [...oldQuestions, response.data]);
-      setNewQuestion(''); // Clear the input field
-    } catch (error) {
-      console.error('Failed to post new question:', error);
+  useEffect(() => {
+    if (submitQuestion && newQuestion && selectCategory) {
+      const postQuestion = async () => {
+        try {
+          const response = await axios.post('/api/question', {
+            question: newQuestion,
+            category: selectCategory
+          });
+          setQuestion(oldQuestion => [...oldQuestion, response.data]);
+          setNewQuestion(''); // Clear the input field
+          setSubmitQuestion(false); // Reset the submit state
+        } catch (error) {
+          console.error('Failed to post new question:', error);
+        }
+      };
+      postQuestion();
     }
-  };
+  }, [submitQuestion, newQuestion, selectCategory]);
   
 
   const handleAnswerQuestion = async (currentQuestionId) => {
     try {
-      // Assuming 'newAnswer' is the answer text, and you have a questionId for the question being answered
+      
       const questionId = currentQuestionId;
       const response = await axios.post('/api/answers', {
         text: newAnswer,
         questionId: questionId
       });
-      // The server should return the newly created answer,
+      
       // which you can then add to your local state:
-      setQuestions(oldQuestions => {
+      setQuestion(oldQuestion => {
         // Find the question being answered and add the new answer to it
-        return oldQuestions.map(question =>
+        return oldQuestion.map(question =>
           question.id === response.data.questionId
             ? { ...question, answers: [...question.answers, response.data] }
             : question
@@ -61,7 +66,21 @@ const Dashboard = () => {
     }
   };
   
-  
+  const handleAskQuestion = async () => {
+    setSubmitQuestion(true);
+    if (newQuestion && selectCategory) {
+      try {
+        const response = await axios.post('/api/question', {
+          question: newQuestion,
+          category: selectCategory
+        });
+        setQuestion(oldQuestion => [...oldQuestion, response.data]);
+        setNewQuestion(''); // Clear the input field
+      } catch (error) {
+        console.error('Failed to post new question:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -90,12 +109,12 @@ const Dashboard = () => {
   }, []);
 
   const handleCategoryClick = async (category) => {
-    setSelectCategory(category);
+    setSelectCategory(category.id.toString()); 
     try {
-      const response = await axios.get(`/api/questions?category=${category}`);
-      setQuestions(response.data);
+      const response = await axios.get(`/api/question?category=${category.id}`);
+      setQuestion(response.data);
     } catch (error) {
-      console.error('Failed to fetch questions:', error);
+      console.error('Failed to fetch question:', error);
     }
   };
   
@@ -120,9 +139,7 @@ const Dashboard = () => {
         <>
           <h1>ConvoCorner</h1>
           <p>
-            Welcome,
-            {username}
-            !
+            Welcome, {username}!
           </p>
           <a href="/login" onClick={handleLogout}>Logout</a>
           <div className="dashboard-container">
@@ -136,12 +153,12 @@ const Dashboard = () => {
                 ))}
               </ul>
             </div>
-            <div className="questions-container">
+            <div className="question-container">
               <h2>Questions</h2>
               {selectCategory ? (
                 <>
                   <ul>
-                    {questions.map((question) => (
+                    {question.map((question) => (
                       <li key={question.id}>{question.text}</li>
                     ))}
                   </ul>
