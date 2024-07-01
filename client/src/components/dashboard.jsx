@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './dashboard.css';
 
 const Dashboard = () => {
-  const [username, setUsername] = useState('');
+  const { state } = useLocation();
+  const [username] = useState(state.username);
   const [category, setCategory] = useState([]);
   const [question, setQuestion] = useState([]);
   const [selectCategory, setSelectCategory] = useState(null);
@@ -11,24 +13,26 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [submitQuestion, setSubmitQuestion] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
-  const [newAnswer, setNewAnswer] = useState('');
-
+  const [setNewAnswer] = useState('');
   const handleQuestionChange = (event) => {
     setNewQuestion(event.target.value);
   };
+  const [inputValue, setInputValue] = useState('');
+  <input value={inputValue} onChange={e => setInputValue(e.target.value)} />;
+  const inputRefs= useRef({});
 
-  const handleAnswerChange = (event) => {
-    setNewAnswer(event.target.value);
-  };
- 
+
+
+  
 
   useEffect(() => {
-    if (submitQuestion && newQuestion && selectCategory) {
+    if (submitQuestion && newQuestion && selectCategory && username) {
       const postQuestion = async () => {
         try {
           const response = await axios.post('/api/question', {
             question: newQuestion,
-            category: selectCategory
+            category: selectCategory,
+            askedBy: username // Include the username here
           });
           setQuestion(oldQuestion => [...oldQuestion, response.data]);
           setNewQuestion(''); // Clear the input field
@@ -38,25 +42,28 @@ const Dashboard = () => {
         }
       };
       postQuestion();
+    } else if (!username) {
     }
-  }, [submitQuestion, newQuestion, selectCategory]);
+  }, [submitQuestion, newQuestion, selectCategory, username]);
   
-
   const handleAnswerQuestion = async (currentQuestionId) => {
     try {
-      
       const questionId = currentQuestionId;
+      console.log("questionid:", questionId)
+      const newAnswer= inputRefs.current[questionId].value
+      console.log("new answer:", newAnswer);
       const response = await axios.post('/api/answers', {
-        text: newAnswer,
-        questionId: questionId
+        answer: newAnswer,
+        questionId: questionId,
+        username: username
       });
       
-      // which you can then add to your local state:
+      // Update the local state
       setQuestion(oldQuestion => {
         // Find the question being answered and add the new answer to it
         return oldQuestion.map(question =>
           question.id === response.data.questionId
-            ? { ...question, answers: [...question.answers, response.data] }
+            ? { ...question, answers: [...(question.answers || []), response.data] }
             : question
         );
       });
@@ -67,37 +74,32 @@ const Dashboard = () => {
   };
   
   const handleAskQuestion = async () => {
-    setSubmitQuestion(true);
-    if (newQuestion && selectCategory) {
+
+    
+    if (newQuestion && selectCategory && username) { // Check if username is not empty
       try {
         const response = await axios.post('/api/question', {
           question: newQuestion,
-          category: selectCategory
+          category: selectCategory,
+          askedBy: username // Include the username here
         });
         setQuestion(oldQuestion => [...oldQuestion, response.data]);
         setNewQuestion(''); // Clear the input field
       } catch (error) {
         console.error('Failed to post new question:', error);
       }
+    } else if (!username) {
+      alert('Please log in before submitting a question.');
     }
   };
+  
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get('/api/user'); 
-        setUsername(response.data.username);
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-        setError(`Failed to fetch user: ${error.toString()}`); // Convert the error object to a string
-      }
-    };
-    fetchUser();
+  
 
     const fetchCategory = async () => {
       try {
-        const response = await axios.get('/api/category'); 
-        console.log('Category:', response.data); 
+        const response = await axios.get('/api/category');  
         setCategory(response.data);
         setIsLoading(false); 
       } catch (error) {
@@ -121,15 +123,20 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/logout');
+      await axios.post('/api/logout', { token: localStorage.getItem('token') });
       
+      // Remove the token from local storage
+      localStorage.removeItem('token');
+  
       window.location.href = '/login';
     } catch (error) {
       console.error('Failed to log out:', error);
     }
   };
+  
 
   return (
+    
     <div>
       {isLoading ? (
         <p>Loading...</p>
@@ -158,14 +165,16 @@ const Dashboard = () => {
               {selectCategory ? (
                 <>
                   <ul>
-                    {question.map((question) => (
-                      <li key={question.id}>{question.text}</li>
+                    {question.map((q) => (
+                      <li key={q.id}>{q.question}
+                      <input type="text" ref={el => inputRefs.current[q.id] = el} value={q.answer} placeholder="Answer question" />
+                      <button onClick={() => handleAnswerQuestion(q.id)}>Answer Question</button>
+                      </li>
                     ))}
                   </ul>
-                  <input type="text" value={newQuestion} onChange={handleQuestionChange} placeholder="Ask a question" />
+                  <input type="" value={newQuestion} onChange={handleQuestionChange} placeholder="Ask a question" />
                   <button onClick={handleAskQuestion}>Ask</button>
-                  <input type="text" value={newAnswer} onChange={handleAnswerChange} placeholder="Answer a question" />
-                  <button onClick={handleAnswerQuestion}>Answer</button>
+                  
                 </>
               ) : (
                 <p>Please select a category</p>

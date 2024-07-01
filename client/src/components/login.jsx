@@ -15,17 +15,25 @@ const Login = () => {
     try {
       const response = await axios.post(config.baseurl + '/login', { username, password });
       
-      if (response.data.username === username) {
-        console.log('Login response:', response.data);
-        navigate('/dashboard');
-      } else {
+      if (response.status === 200) { // Check if the status code is 200 (OK)
+        if (response.data.username === username) {
+          console.log('Login response:', response.data);
+          // Store the username in local storage
+          
+          navigate('/dashboard', {state: {username: response.data.username}});
+        } else {
+          setErrorMessage('Invalid username or password');
+        }
+      } else if (response.status === 401) { // Check if the status code is 401 (Unauthorized)
         setErrorMessage('Invalid username or password');
+      } else {
+        setErrorMessage('An error occurred during login');
       }
     } catch (error) {
       console.error('Error during login', error);
       setErrorMessage('An error occurred during login');
     }
-  };
+  };  
 
   return (
     <div className="login-form">

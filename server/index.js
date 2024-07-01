@@ -130,9 +130,23 @@ app.post('/login', (req, res) => {
 
 });
 
+let tokenBlacklist = [];
+app.post('/api/logout', (req, res) => {
+  const { token } = req.body;
+
+  // Check if the token is not null
+  if (token) {
+    // Add the token to your blacklist
+    tokenBlacklist.push(token);
+  }
+
+  res.status(200).send('Logged out successfully.');
+});
 
 
-app.post('/register', (req, res) => {
+
+
+app.post('/api/register', (req, res) => {
 
   if(!req.body.username){
     res.status(400).json({ error: 'Username not provided' });
@@ -296,7 +310,11 @@ app.put('/api/category/:id', async (req, res) => {
     }
   
     try {
-      const query = 'SELECT * FROM question WHERE category = ?';
+      const query = `SELECT q.*, a.answer 
+                      FROM question q
+                      LEFT JOIN answers a
+                        ON q.id = a.question_id
+                      WHERE q.category = ? `;
       const [rows] = await sqlConn.promise().query(query, [category]);
   
       res.json(rows);
@@ -336,16 +354,16 @@ app.put('/api/category/:id', async (req, res) => {
     }
   
     try {
-      const query = 'INSERT INTO question (question, category, asked_by, asked_on) VALUES (?, ?, ?, ?)';
-      const result = await sqlConn.promise().query(query, [question, category, askedBy, askedOn]);
+      const query = 'INSERT INTO question (question, category, asked_by, asked_on) VALUES (?, ?, ?, NOW())';
+      const result = await sqlConn.promise().query(query, [question, category, askedBy]);
   
-      console.log('Question inserted with ID:', result.insertId); // Log the inserted question ID
-      res.status(201).json({ id: result.insertId, question, category });
+      console.log('Question inserted with ID:', result[0].insertId);
+      res.status(201).json({ id: result[0].insertId, question, category });
     } catch (error) {
       console.error('Failed to insert question:', error);
       res.status(500).json({ error: 'Failed to insert question' });
     }
-  });    
+  });   
   
   app.put('/api/question/:id', (req, res) => {
     const { id } = req.params;
@@ -392,11 +410,12 @@ app.put('/api/category/:id', async (req, res) => {
   });
 
   app.post('/api/answers', async (req, res) => {
-    const { answer, questionId } = req.body;
+    const { answer, questionId, username } = req.body;
 
     try {
-      const query = 'INSERT INTO answers (text, question_id) VALUES (?, ?)';
-      const result = await sqlConn.promise().query(query, [answer, questionId]);
+      const query = 'INSERT INTO answers (answer, question_id, answered_by, answer_on) VALUES (?, ?, ?, NOW())';
+      console.log(answer)
+      const result = await sqlConn.promise().query(query, [answer, questionId, username]);
   
       res.status(201).json({ id: result.insertId, text: answer, questionId });
     } catch (error) {
@@ -445,8 +464,17 @@ app.delete('/answers/:id', (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: err.message });
+  if (tokenBlacklist.includes(token)) {
+    return res.status(401).send('This token has been invalidated.');
+  }
+
+  // Otherwise, verify the token as you normally would
+  // ...
+
+  next();
 });
 
+const PORT = process.env.PORT || 27325;
   app.listen(27325, () => {
     console.log('Listening on port 27325!');
   });
